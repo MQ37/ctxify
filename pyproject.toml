@@ -1,0 +1,17 @@
+[project]
+name = "ctxify"
+version = "0.1.0"
+description = "A tool to print git repository files with tree structure"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "click",      # For CLI functionality
+    "gitpython",  # For Git operations
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+ctxify = "ctxify.cli:main"  # Entry point
