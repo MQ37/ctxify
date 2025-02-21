@@ -1,56 +1,115 @@
 import os
 import git
 from pathlib import Path
+import subprocess
 
-def print_directory_tree(path, prefix=""):
-    """Prints a simple directory tree structure"""
-    entries = sorted([e for e in path.iterdir() if not e.name.startswith('.')
-                     and e.name != '__pycache__'])
-    for i, entry in enumerate(entries):
-        is_last = i == len(entries) - 1
-        print(f"{prefix}{'└── ' if is_last else '├── '}{entry.name}")
-        if entry.is_dir():
-            print_directory_tree(entry, prefix + ("    " if is_last else "│   "))
+# Files/extensions to skip (non-code files)
+NON_CODE_PATTERNS = {
+    "package-lock.json", "poetry.lock", "uv.lock", "Pipfile.lock", "yarn.lock",
+    ".gitignore", ".gitattributes", ".editorconfig", ".prettierrc", ".eslintrc",
+    "LICENSE", "CHANGELOG", "CONTRIBUTING",
+    ".json", ".yaml", ".yml", ".toml", ".txt", ".log", ".lock"
+}
 
-def get_git_files():
-    """Get all tracked files from git repo respecting .gitignore"""
+def print_filtered_tree(files, output_lines=None):
+    """Builds a tree structure from a list of file paths"""
+    if output_lines is None:
+        output_lines = []
+    tree = {}
+    for file_path in files:
+        parts = file_path.split('/')
+        current = tree
+        for part in parts[:-1]:
+            current = current.setdefault(part, {})
+        current[parts[-1]] = None
+
+    def render_tree(node, prefix=""):
+        if not isinstance(node, dict):
+            return
+        items = sorted(node.keys())
+        for i, item in enumerate(items):
+            is_last = i == len(items) - 1
+            output_lines.append(f"{prefix}{'└── ' if is_last else '├── '}{item}")
+            if isinstance(node[item], dict):
+                render_tree(node[item], prefix + ("    " if is_last else "│   "))
+
+    render_tree(tree)
+    return output_lines
+
+def get_git_files(include_md=False):
+    """Get all tracked code files from git repo, optionally including .md files"""
     try:
         repo = git.Repo(os.getcwd(), search_parent_directories=True)
         files = [item.path for item in repo.tree().traverse()
                 if not repo.ignored(item.path) and item.type == 'blob']
-        return sorted(files)
+        filtered_files = [
+            f for f in files
+            if not (
+                f in NON_CODE_PATTERNS or
+                any(f.endswith(ext) for ext in NON_CODE_PATTERNS) or
+                (not include_md and (f.endswith('.md') or 'README' in f))
+            )
+        ]
+        return [], sorted(filtered_files)
     except git.InvalidGitRepositoryError:
-        print("Error: Not in a git repository")
-        return []
+        return ["Error: Not in a git repository"], []
     except Exception as e:
-        print(f"Error accessing git repository: {e}")
-        return []
+        return [f"Error accessing git repository: {e}"], []
 
-def print_git_contents():
-    """Print tree structure and file contents of git repo"""
+def copy_to_clipboard(text):
+    """Copy text to system clipboard using xclip"""
+    try:
+        process = subprocess.run(
+            ['xclip', '-selection', 'clipboard'],
+            input=text.encode('utf-8'),
+            check=True
+        )
+        return True
+    except subprocess.CalledProcessError:
+        print("Warning: Failed to copy to clipboard (xclip error)")
+        return False
+    except FileNotFoundError:
+        print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
+        return False
+
+def print_git_contents(include_md=False):
+    """Build output for clipboard, print only tree to stdout"""
+    output_lines = []  # For clipboard
+    tree_lines = []    # For stdout
+
     try:
         repo = git.Repo(os.getcwd(), search_parent_directories=True)
         repo_root = Path(repo.working_dir)
     except git.InvalidGitRepositoryError:
-        print("Error: Not in a git repository")
-        return
+        tree_lines.append("Error: Not in a git repository")
+        print("\n".join(tree_lines))
+        return "\n".join(tree_lines)  # Still return for clipboard consistency
 
-    # Print tree structure
-    print("\nDirectory Structure:")
-    print_directory_tree(repo_root)
-    print("\n" + "-" * 50 + "\n")
+    # Get filtered files
+    errors, files = get_git_files(include_md=include_md)
+    if errors:
+        tree_lines.extend(errors)
+        print("\n".join(tree_lines))
+        return "\n".join(tree_lines)
 
-    # Print file contents
-    files = get_git_files()
+    # Print tree to stdout
+    tree_lines.append("\nFiles Included in Context:")
+    print_filtered_tree(files, tree_lines)
+    print("\n".join(tree_lines))
+
+    # Build full output for clipboard (tree + contents)
+    output_lines.extend(tree_lines)
+    output_lines.append("\n" + "-" * 50 + "\n")
     for file_path in files:
         full_path = repo_root / file_path
         if full_path.is_file():
+            output_lines.append(f"{file_path}:")
             try:
                 with open(full_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                print(f"{file_path}:")
-                print(content)
-                print()
+                output_lines.append(content)
             except Exception as e:
-                print(f"{file_path}:")
-                print(f"Error reading file: {e}\n")
+                output_lines.append(f"Error reading file: {e}")
+            output_lines.append("")
+
+    return "\n".join(output_lines)

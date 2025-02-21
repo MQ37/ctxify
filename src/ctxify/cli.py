@@ -1,10 +1,13 @@
 import click
-from ctxify.main import print_git_contents
+from ctxify.main import print_git_contents, copy_to_clipboard
 
 @click.command()
-def main():
-    """A tool to print all tracked files in a git repository with tree structure."""
-    print_git_contents()
+@click.option('--md', '-md', is_flag=True, help='Include README and other .md files in output')
+def main(md):
+    """A tool to print all tracked files in a git repository with tree structure and copy to clipboard."""
+    output = print_git_contents(include_md=md)
+    if copy_to_clipboard(output):
+        click.echo("Project context copied to clipboard!")
 
 if __name__ == "__main__":
     main()
