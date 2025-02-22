@@ -27,23 +27,24 @@ jobs:
         with:
           python-version: '3.13'
 
-      # Install dependencies (assuming uv is used based on uv.lock)
+      # Install uv
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      # Install project dependencies
       - name: Install project dependencies
         run: |
-          uv sync --locked
+          uv sync --frozen
 
       # Bump version (patch level) and commit
       - name: Bump version
         run: |
-          # Install bump2version if not already in dependencies
+          # Install bump2version into the uv environment
           uv pip install bump2version
-          # Bump the patch version
-          bump2version patch src/ctxify/__init__.py --allow-dirty
+          # Run bump2version within the uv environment
+          uv run bump2version patch src/ctxify/__init__.py --allow-dirty
           # Configure git for commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -63,4 +64,4 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          repository-url: https://upload.pypi.org/legacy/  # Default, but explicit for clarity
+          repository-url: https://upload.pypi.org/legacy/
