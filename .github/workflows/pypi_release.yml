@@ -1,0 +1,66 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release from (e.g., master, develop)'
+        required: true
+        default: 'master'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed for version bump commit
+
+    steps:
+      # Checkout the specified branch
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      # Set up Python environment
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Install dependencies (assuming uv is used based on uv.lock)
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install project dependencies
+        run: |
+          uv sync --locked
+
+      # Bump version (patch level) and commit
+      - name: Bump version
+        run: |
+          # Install bump2version if not already in dependencies
+          uv pip install bump2version
+          # Bump the patch version
+          bump2version patch src/ctxify/__init__.py --allow-dirty
+          # Configure git for commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit and push the version bump
+          git add src/ctxify/__init__.py
+          git commit -m "Bump version for PyPI release [skip ci]"
+          git push origin ${{ github.event.inputs.branch }}
+
+      # Build the package
+      - name: Build package
+        run: |
+          uv build
+
+      # Publish to PyPI
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          repository-url: https://upload.pypi.org/legacy/  # Default, but explicit for clarity
