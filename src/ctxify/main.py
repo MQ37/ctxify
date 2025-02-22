@@ -72,8 +72,14 @@ def copy_to_clipboard(text):
         print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
         return False
 
+def estimate_tokens(text):
+    """Estimate token count using 1 token ≈ 4 characters"""
+    char_count = len(text)
+    token_count = char_count // 4  # Integer division for approximate tokens
+    return token_count
+
 def print_git_contents(include_md=False):
-    """Build output for clipboard, print only tree to stdout"""
+    """Build output for clipboard, print tree and token count to stdout"""
     output_lines = []  # For clipboard
     tree_lines = []    # For stdout
 
@@ -83,7 +89,7 @@ def print_git_contents(include_md=False):
     except git.InvalidGitRepositoryError:
         tree_lines.append("Error: Not in a git repository")
         print("\n".join(tree_lines))
-        return "\n".join(tree_lines)  # Still return for clipboard consistency
+        return "\n".join(tree_lines)
 
     # Get filtered files
     errors, files = get_git_files(include_md=include_md)
@@ -95,7 +101,6 @@ def print_git_contents(include_md=False):
     # Print tree to stdout
     tree_lines.append("\nFiles Included in Context:")
     print_filtered_tree(files, tree_lines)
-    print("\n".join(tree_lines))
 
     # Build full output for clipboard (tree + contents)
     output_lines.extend(tree_lines)
@@ -111,5 +116,17 @@ def print_git_contents(include_md=False):
             except Exception as e:
                 output_lines.append(f"Error reading file: {e}")
             output_lines.append("")
+
+    # Calculate and append token count
+    full_output = "\n".join(output_lines)
+    token_count = estimate_tokens(full_output)
+
+    # Add token count to both stdout and clipboard output
+    token_info = f"\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)"
+    tree_lines.append(token_info)
+    output_lines.append(token_info)
+
+    # Print to stdout
+    print("\n".join(tree_lines))
 
     return "\n".join(output_lines)
