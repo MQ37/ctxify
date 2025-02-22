@@ -1,7 +1,7 @@
 # ctxify 🎉
 **Turn Your Git Repo into a Clipboard-Ready Context Machine**
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/mq37/ctxify?color=brightgreen)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **`ctxify`** is a sleek CLI tool that grabs all tracked files in your Git repository, builds a neat tree structure, and copies everything—code and all—to your clipboard with a single command. Perfect for sharing project context, debugging, or feeding your code straight into AI assistants. Oh, and it even throws in an approximate token count for good measure! 🚀
@@ -29,25 +29,23 @@ Ever wanted to:
 
 ## Installation
 
-1. **Clone the repo**:
-   ```bash
-   git clone https://github.com/yourusername/ctxify.git
-   cd ctxify
-   ```
+Install `ctxify` from PyPI using your favorite tool:
 
-2. **Set up Python 3.13**:
-   Use `pyenv` or your favorite tool to install Python 3.13 (check `.python-version`).
+- **With `pipx`** (recommended for isolated CLI tools):
+  ```bash
+  pipx install ctxify
+  ```
 
-3. **Install dependencies**:
-   ```bash
-   pip install click gitpython
-   ```
+- **With `uv`** (fast and modern Python tool management):
+  ```bash
+  uv tool install ctxify
+  ```
 
-4. **Optional (for clipboard support)**:
-   On Linux, install `xclip`:
-   ```bash
-   sudo apt install xclip
-   ```
+### Optional (for clipboard support)
+On Linux, install `xclip` for clipboard functionality:
+```bash
+sudo apt install xclip
+```
 
 ---
 
@@ -55,13 +53,13 @@ Ever wanted to:
 Run it from your Git repo’s root:
 
 ```bash
-python -m src.ctxify.cli
+ctxify
 ```
 
 ### Options
 - `--md` / `-md`: Include `.md` files (like `README.md`) in the output.
    ```bash
-   python -m src.ctxify.cli --md
+   ctxify --md
    ```
 
 ### Example Output
