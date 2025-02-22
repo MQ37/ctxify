@@ -4,7 +4,7 @@ from pathlib import Path
 
 import git
 
-# Files/extensions to skip (non-code files)
+# Files/extensions to skip (non-code files) for content inclusion
 NON_CODE_PATTERNS = {
     'package-lock.json',
     'poetry.lock',
@@ -56,28 +56,29 @@ def print_filtered_tree(files, output_lines=None):
 
 
 def get_git_files(include_md=False):
-    """Get all tracked code files from git repo, optionally including .md files"""
+    """Get all tracked files from git repo, separating code and non-code files"""
     try:
         repo = git.Repo(os.getcwd(), search_parent_directories=True)
-        files = [
+        all_files = [
             item.path
             for item in repo.tree().traverse()
             if not repo.ignored(item.path) and item.type == 'blob'
         ]
-        filtered_files = [
+        # Filter code files (exclude non-code and optionally .md files)
+        code_files = [
             f
-            for f in files
+            for f in all_files
             if not (
                 f in NON_CODE_PATTERNS
                 or any(f.endswith(ext) for ext in NON_CODE_PATTERNS)
                 or (not include_md and (f.endswith('.md') or 'README' in f))
             )
         ]
-        return [], sorted(filtered_files)
+        return [], sorted(all_files), sorted(code_files)
     except git.InvalidGitRepositoryError:
-        return ['Error: Not in a git repository'], []
+        return ['Error: Not in a git repository'], [], []
     except Exception as e:
-        return [f'Error accessing git repository: {e}'], []
+        return [f'Error accessing git repository: {e}'], [], []
 
 
 def copy_to_clipboard(text):
@@ -103,7 +104,7 @@ def estimate_tokens(text):
 
 
 def print_git_contents(include_md=False):
-    """Build output for clipboard, print tree and token count to stdout"""
+    """Build output for clipboard, print tree with all files and token count to stdout"""
     output_lines = []  # For clipboard
     tree_lines = []  # For stdout
 
@@ -115,21 +116,21 @@ def print_git_contents(include_md=False):
         print('\n'.join(tree_lines))
         return '\n'.join(tree_lines)
 
-    # Get filtered files
-    errors, files = get_git_files(include_md=include_md)
+    # Get all files and code files separately
+    errors, all_files, code_files = get_git_files(include_md=include_md)
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
         return '\n'.join(tree_lines)
 
-    # Print tree to stdout
+    # Print tree with all files to stdout and clipboard
     tree_lines.append('\nFiles Included in Context:')
-    print_filtered_tree(files, tree_lines)
-
-    # Build full output for clipboard (tree + contents)
+    print_filtered_tree(all_files, tree_lines)
     output_lines.extend(tree_lines)
+
+    # Add separator and contents of code files only
     output_lines.append('\n' + '-' * 50 + '\n')
-    for file_path in files:
+    for file_path in code_files:  # Only include contents of code files
         full_path = repo_root / file_path
         if full_path.is_file():
             output_lines.append(f'{file_path}:')
@@ -141,16 +142,13 @@ def print_git_contents(include_md=False):
                 output_lines.append(f'Error reading file: {e}')
             output_lines.append('')
 
-    # Calculate and append token count
+    # Calculate token count and append only to stdout
     full_output = '\n'.join(output_lines)
     token_count = estimate_tokens(full_output)
-
-    # Add token count to both stdout and clipboard output
     token_info = (
         f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
     )
     tree_lines.append(token_info)
-    output_lines.append(token_info)
 
     # Print to stdout
     print('\n'.join(tree_lines))
