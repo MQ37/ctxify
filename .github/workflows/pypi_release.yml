@@ -38,21 +38,6 @@ jobs:
         run: |
           uv sync --frozen
 
-      # Bump version (patch level) and commit
-      - name: Bump version
-        run: |
-          # Install bump2version into the uv environment
-          uv pip install bump2version
-          # Run bump2version within the uv environment
-          uv run bump2version patch src/ctxify/__init__.py --allow-dirty
-          # Configure git for commit
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Commit and push the version bump
-          git add src/ctxify/__init__.py
-          git commit -m "Bump version for PyPI release [skip ci]"
-          git push origin ${{ github.event.inputs.branch }}
-
       # Build the package
       - name: Build package
         run: |
