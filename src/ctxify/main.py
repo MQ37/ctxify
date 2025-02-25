@@ -1,6 +1,8 @@
 import os
 import subprocess
 from pathlib import Path
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import FuzzyWordCompleter
 
 # Files/extensions to skip (non-code files) for content inclusion
 NON_CODE_PATTERNS = {
@@ -125,10 +127,77 @@ def estimate_tokens(text):
     return token_count
 
 
+def interactive_file_selection(root_dir='.', include_md=False):
+    """Interactively select files to include with fuzzy tab autocompletion"""
+    output_lines = []
+    tree_lines = []
+
+    # Get all files
+    errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
+    if errors:
+        tree_lines.extend(errors)
+        print('\n'.join(tree_lines))
+        return '\n'.join(tree_lines)
+
+    # Set up fuzzy autocompletion with all files
+    completer = FuzzyWordCompleter(all_files)
+    session = PromptSession(completer=completer, complete_while_typing=True)
+
+    # Show the file tree
+    tree_lines.append(f'\nFiles Available in Context (from {root_dir}):')
+    print_filtered_tree(all_files, tree_lines)
+    print('\n'.join(tree_lines))
+    print("\nEnter file paths to include (press Enter twice to finish):")
+
+    selected_files = []
+    while True:
+        try:
+            file_path = session.prompt("> ")
+            if not file_path:  # Empty input (Enter pressed)
+                if not selected_files:  # First empty, keep prompting
+                    continue
+                break  # Second empty, finish
+            if file_path in all_files:
+                if file_path not in selected_files:
+                    selected_files.append(file_path)
+                    print(f"Added: {file_path}")
+                else:
+                    print(f"Already added: {file_path}")
+            else:
+                print(f"File not found: {file_path}")
+        except KeyboardInterrupt:
+            break
+
+    # Build output with selected files
+    output_lines.extend(tree_lines)
+    output_lines.append('\n' + '-' * 50 + '\n')
+    target_dir = Path(root_dir).resolve()
+    for file_path in selected_files:
+        full_path = target_dir / file_path
+        if full_path.is_file():
+            output_lines.append(f'{file_path}:')
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                output_lines.append(content)
+            except Exception as e:
+                output_lines.append(f'Error reading file: {e}')
+            output_lines.append('')
+
+    # Calculate token count and append only to stdout
+    full_output = '\n'.join(output_lines)
+    token_count = estimate_tokens(full_output)
+    token_info = f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
+    tree_lines.append(token_info)
+    print('\n'.join(tree_lines[len(tree_lines) - 1:]))  # Print only token info
+
+    return '\n'.join(output_lines)
+
+
 def print_git_contents(root_dir='.', include_md=False):
     """Build output for clipboard, print tree with all files and token count to stdout"""
-    output_lines = []  # For clipboard
-    tree_lines = []  # For stdout
+    output_lines = []
+    tree_lines = []
 
     # Resolve paths
     repo_root = Path(subprocess.check_output(

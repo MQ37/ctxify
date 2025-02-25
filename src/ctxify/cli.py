@@ -1,6 +1,6 @@
 import click
 
-from ctxify.main import copy_to_clipboard, print_git_contents
+from ctxify.main import copy_to_clipboard, print_git_contents, interactive_file_selection
 
 
 @click.command()
@@ -8,9 +8,15 @@ from ctxify.main import copy_to_clipboard, print_git_contents
 @click.option(
     '--md', '-md', is_flag=True, help='Include README and other .md files in output'
 )
-def main(directory, md):
+@click.option(
+    '-i', '--interactive', is_flag=True, help='Interactively select files to include with tab autocompletion'
+)
+def main(directory, md, interactive):
     """A tool to print all tracked files in a git repository directory with tree structure and copy to clipboard."""
-    output = print_git_contents(root_dir=directory, include_md=md)
+    if interactive:
+        output = interactive_file_selection(directory, include_md=md)
+    else:
+        output = print_git_contents(root_dir=directory, include_md=md)
     if copy_to_clipboard(output):
         click.echo('Project context copied to clipboard!')
 

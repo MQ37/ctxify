@@ -5,8 +5,9 @@ description = "A tool to print git repository files with tree structure"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-    "click",      # For CLI functionality
-    "gitpython",  # For Git operations
+    "click", # For CLI functionality
+    "gitpython", # For Git operations
+    "prompt-toolkit>=3.0.50",
 ]
 
 [build-system]
