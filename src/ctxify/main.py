@@ -194,7 +194,7 @@ def interactive_file_selection(root_dir='.', include_md=False):
     return '\n'.join(output_lines)
 
 
-def print_git_contents(root_dir='.', include_md=False):
+def print_git_contents(root_dir='.', include_md=False, structure_only=False):
     """Build output for clipboard, print tree with all files and token count to stdout"""
     output_lines = []
     tree_lines = []
@@ -222,19 +222,20 @@ def print_git_contents(root_dir='.', include_md=False):
     print_filtered_tree(all_files, tree_lines)
     output_lines.extend(tree_lines)
 
-    # Add separator and contents of code files only
-    output_lines.append('\n' + '-' * 50 + '\n')
-    for file_path in code_files:
-        full_path = target_dir / file_path
-        if full_path.is_file():
-            output_lines.append(f'{file_path}:')
-            try:
-                with open(full_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                output_lines.append(content)
-            except Exception as e:
-                output_lines.append(f'Error reading file: {e}')
-            output_lines.append('')
+    # If not structure-only, add separator and contents of code files
+    if not structure_only:
+        output_lines.append('\n' + '-' * 50 + '\n')
+        for file_path in code_files:
+            full_path = target_dir / file_path
+            if full_path.is_file():
+                output_lines.append(f'{file_path}:')
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    output_lines.append(content)
+                except Exception as e:
+                    output_lines.append(f'Error reading file: {e}')
+                output_lines.append('')
 
     # Calculate token count and append only to stdout
     full_output = '\n'.join(output_lines)

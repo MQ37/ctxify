@@ -11,12 +11,15 @@ from ctxify.main import copy_to_clipboard, print_git_contents, interactive_file_
 @click.option(
     '-i', '--interactive', is_flag=True, help='Interactively select files to include with tab autocompletion'
 )
-def main(directory, md, interactive):
+@click.option(
+    '-s', '--structure', is_flag=True, help='Output only the project structure without file contents'
+)
+def main(directory, md, interactive, structure):
     """A tool to print all tracked files in a git repository directory with tree structure and copy to clipboard."""
     if interactive:
         output = interactive_file_selection(directory, include_md=md)
     else:
-        output = print_git_contents(root_dir=directory, include_md=md)
+        output = print_git_contents(root_dir=directory, include_md=md, structure_only=structure)
     if copy_to_clipboard(output):
         click.echo('Project context copied to clipboard!')
 
