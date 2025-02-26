@@ -2,6 +2,7 @@
 **Turn Your Git Repo into a Clipboard-Ready Context Machine**
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
+![Code Checks](https://github.com/mq37/ctxify/actions/workflows/code_checks.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **`ctxify`** is a sleek CLI tool that grabs all tracked files in your Git repository, builds a neat tree structure, and copies everything—code and all—to your clipboard with a single command. Perfect for sharing project context, debugging, or feeding your code straight into AI assistants. It even gives you an approximate token count for fun! 🚀
