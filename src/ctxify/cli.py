@@ -1,4 +1,3 @@
-
 import click
 
 from ctxify.main import (

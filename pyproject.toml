@@ -30,5 +30,7 @@ quote-style = "single"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.4",
+    "pytest-mock>=3.14.0",
     "ruff>=0.9.7",
 ]
