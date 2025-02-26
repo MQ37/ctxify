@@ -1,6 +1,6 @@
 [project]
 name = "ctxify"
-version = "0.1.5"
+version = "0.1.6"
 description = "A tool to print git repository files with tree structure"
 readme = "README.md"
 requires-python = ">=3.8"
