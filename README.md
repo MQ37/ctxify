@@ -16,7 +16,7 @@ Ever wanted to:
 - Get just the structure without the contents?
 - Know how many tokens your project weighs in at?
 
-`ctxify` does it all. It’s lightweight, fast, and skips the fluff (like lock files or `.gitignore`). Built with Python 3.13 and Git magic. ✨
+`ctxify` does it all. It's lightweight, fast, and skips the fluff (like lock files or `.gitignore`). Built with Python 3.13 and Git magic. ✨
 
 ---
 
@@ -51,10 +51,12 @@ On Linux, install `xclip`:
 sudo apt install xclip
 ```
 
+On macOS, clipboard support is built-in (uses `pbcopy`), so no additional installation is needed.
+
 ---
 
 ## Usage
-Run it from your Git repo’s root:
+Run it from your Git repo's root:
 
 ```bash
 ctxify

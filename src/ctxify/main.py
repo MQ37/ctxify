@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import FuzzyWordCompleter
+import platform
 
 # Files/extensions to skip (non-code files) for content inclusion
 NON_CODE_PATTERNS = {
@@ -106,17 +107,33 @@ def get_git_files(root_dir, include_md=False):
 
 
 def copy_to_clipboard(text):
-    """Copy text to system clipboard using xclip"""
+    """Copy text to system clipboard using pbcopy (macOS) or xclip (Linux)"""
+    system = platform.system().lower()
+    print("Deciding")
     try:
-        subprocess.run(
-            ['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True
-        )
+        if system == 'darwin':  # macOS
+            print("Darwin")
+            subprocess.run(
+                ['pbcopy'], input=text.encode('utf-8'), check=True
+            )
+        elif system == 'linux':  # Linux
+            print("Linux")
+            subprocess.run(
+                ['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True
+            )
+        else:
+            print(f'Warning: Clipboard operations not supported on {platform.system()}')
+            return False
         return True
     except subprocess.CalledProcessError:
-        print('Warning: Failed to copy to clipboard (xclip error)')
+        cmd = 'pbcopy' if system == 'darwin' else 'xclip'
+        print(f'Warning: Failed to copy to clipboard ({cmd} error)')
         return False
     except FileNotFoundError:
-        print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
+        if system == 'darwin':
+            print("Warning: pbcopy not found. This is unexpected as it should be built into macOS")
+        else:
+            print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
         return False
 
 
