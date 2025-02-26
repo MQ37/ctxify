@@ -1,6 +1,6 @@
 [project]
 name = "ctxify"
-version = "0.1.4"
+version = "0.1.5"
 description = "A tool to print git repository files with tree structure"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -30,5 +30,7 @@ quote-style = "single"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.4",
+    "pytest-mock>=3.14.0",
     "ruff>=0.9.7",
 ]
