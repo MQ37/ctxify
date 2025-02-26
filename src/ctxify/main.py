@@ -1,6 +1,8 @@
 import os
 import subprocess
+import sys
 from pathlib import Path
+from typing import List, Tuple, Optional, Dict, Union
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import FuzzyWordCompleter
 
@@ -28,12 +30,24 @@ NON_CODE_PATTERNS = {
     '.lock',
 }
 
+def check_git_repo(root_dir: str) -> bool:
+    """Check if the given directory is within a git repository."""
+    try:
+        subprocess.check_output(
+            ['git', 'rev-parse', '--show-toplevel'],
+            text=True,
+            cwd=root_dir,
+            stderr=subprocess.STDOUT
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
-def print_filtered_tree(files, output_lines=None):
+def print_filtered_tree(files: List[str], output_lines: Optional[List[str]] = None) -> List[str]:
     """Builds a tree structure from a list of file paths"""
     if output_lines is None:
         output_lines = []
-    tree = {}
+    tree: Dict[str, Union[None, Dict]] = {}
     for file_path in files:
         parts = file_path.split('/')
         current = tree
@@ -41,7 +55,7 @@ def print_filtered_tree(files, output_lines=None):
             current = current.setdefault(part, {})
         current[parts[-1]] = None
 
-    def render_tree(node, prefix=''):
+    def render_tree(node: Dict[str, Union[None, Dict]], prefix: str = '') -> None:
         if not isinstance(node, dict):
             return
         items = sorted(node.keys())
@@ -54,16 +68,16 @@ def print_filtered_tree(files, output_lines=None):
     render_tree(tree)
     return output_lines
 
-
-def get_git_files(root_dir, include_md=False):
+def get_git_files(root_dir: str, include_md: bool = False) -> Tuple[List[str], List[str], List[str]]:
     """Get all tracked files from a specific directory within a git repo using git ls-files"""
+    target_dir = Path(root_dir).resolve()
     try:
-        # Resolve the repo root and target directory
+        # Resolve the repo root
         repo_root = Path(subprocess.check_output(
             ['git', 'rev-parse', '--show-toplevel'],
-            text=True
+            text=True,
+            cwd=target_dir
         ).strip())
-        target_dir = Path(root_dir).resolve()
 
         # Ensure the target directory is within the repo
         if not str(target_dir).startswith(str(repo_root)):
@@ -82,16 +96,14 @@ def get_git_files(root_dir, include_md=False):
         dir_files = []
         for f in all_files:
             if rel_str == '.' or f.startswith(rel_str + '/') or f == rel_str:
-                # Adjust path to be relative to target_dir
                 if rel_str != '.' and f.startswith(rel_str + '/'):
                     dir_files.append(f[len(rel_str) + 1:])
                 else:
                     dir_files.append(f)
 
-        # Filter code files (exclude non-code and optionally .md files)
+        # Filter code files
         code_files = [
-            f
-            for f in dir_files
+            f for f in dir_files
             if not (
                 f in NON_CODE_PATTERNS
                 or any(f.endswith(ext) for ext in NON_CODE_PATTERNS)
@@ -104,8 +116,7 @@ def get_git_files(root_dir, include_md=False):
     except Exception as e:
         return [f'Error processing directory: {e}'], [], []
 
-
-def copy_to_clipboard(text):
+def copy_to_clipboard(text: str) -> bool:
     """Copy text to system clipboard using xclip"""
     try:
         subprocess.run(
@@ -119,44 +130,42 @@ def copy_to_clipboard(text):
         print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
         return False
 
-
-def estimate_tokens(text):
+def estimate_tokens(text: str) -> int:
     """Estimate token count using 1 token ≈ 4 characters"""
     char_count = len(text)
-    token_count = char_count // 4  # Integer division for approximate tokens
-    return token_count
+    return char_count // 4
 
-
-def interactive_file_selection(root_dir='.', include_md=False):
+def interactive_file_selection(root_dir: str = '.', include_md: bool = False) -> str:
     """Interactively select files to include with fuzzy tab autocompletion"""
-    output_lines = []
-    tree_lines = []
+    if not check_git_repo(root_dir):
+        print(f"Error: {root_dir} is not within a git repository. This tool requires a git repository.")
+        sys.exit(1)
 
-    # Get all files
+    output_lines: List[str] = []
+    tree_lines: List[str] = []
+
     errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
         return '\n'.join(tree_lines)
 
-    # Set up fuzzy autocompletion with all files
     completer = FuzzyWordCompleter(all_files)
     session = PromptSession(completer=completer, complete_while_typing=True)
 
-    # Show the file tree
     tree_lines.append(f'\nFiles Available in Context (from {root_dir}):')
     print_filtered_tree(all_files, tree_lines)
     print('\n'.join(tree_lines))
     print("\nEnter file paths to include (press Enter twice to finish):")
 
-    selected_files = []
+    selected_files: List[str] = []
     while True:
         try:
             file_path = session.prompt("> ")
-            if not file_path:  # Empty input (Enter pressed)
-                if not selected_files:  # First empty, keep prompting
+            if not file_path:
+                if not selected_files:
                     continue
-                break  # Second empty, finish
+                break
             if file_path in all_files:
                 if file_path not in selected_files:
                     selected_files.append(file_path)
@@ -168,7 +177,6 @@ def interactive_file_selection(root_dir='.', include_md=False):
         except KeyboardInterrupt:
             break
 
-    # Build output with selected files
     output_lines.extend(tree_lines)
     output_lines.append('\n' + '-' * 50 + '\n')
     target_dir = Path(root_dir).resolve()
@@ -184,45 +192,34 @@ def interactive_file_selection(root_dir='.', include_md=False):
                 output_lines.append(f'Error reading file: {e}')
             output_lines.append('')
 
-    # Calculate token count and append only to stdout
     full_output = '\n'.join(output_lines)
     token_count = estimate_tokens(full_output)
     token_info = f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
     tree_lines.append(token_info)
-    print('\n'.join(tree_lines[len(tree_lines) - 1:]))  # Print only token info
+    print('\n'.join(tree_lines[len(tree_lines) - 1:]))
 
-    return '\n'.join(output_lines)
+    return full_output
 
-
-def print_git_contents(root_dir='.', include_md=False, structure_only=False):
+def print_git_contents(root_dir: str = '.', include_md: bool = False, structure_only: bool = False) -> str:
     """Build output for clipboard, print tree with all files and token count to stdout"""
-    output_lines = []
-    tree_lines = []
+    if not check_git_repo(root_dir):
+        print(f"Error: {root_dir} is not within a git repository. This tool requires a git repository.")
+        sys.exit(1)
 
-    # Resolve paths
-    repo_root = Path(subprocess.check_output(
-        ['git', 'rev-parse', '--show-toplevel'],
-        text=True
-    ).strip())
+    output_lines: List[str] = []
+    tree_lines: List[str] = []
+
     target_dir = Path(root_dir).resolve()
-    if not str(target_dir).startswith(str(repo_root)):
-        tree_lines.append(f'Error: Directory {root_dir} is outside the git repository')
-        print('\n'.join(tree_lines))
-        return '\n'.join(tree_lines)
-
-    # Get all files and code files
     errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
         return '\n'.join(tree_lines)
 
-    # Print tree with all files to stdout and clipboard
     tree_lines.append(f'\nFiles Included in Context (from {root_dir}):')
     print_filtered_tree(all_files, tree_lines)
     output_lines.extend(tree_lines)
 
-    # If not structure-only, add separator and contents of code files
     if not structure_only:
         output_lines.append('\n' + '-' * 50 + '\n')
         for file_path in code_files:
@@ -237,13 +234,10 @@ def print_git_contents(root_dir='.', include_md=False, structure_only=False):
                     output_lines.append(f'Error reading file: {e}')
                 output_lines.append('')
 
-    # Calculate token count and append only to stdout
     full_output = '\n'.join(output_lines)
     token_count = estimate_tokens(full_output)
     token_info = f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
     tree_lines.append(token_info)
 
-    # Print to stdout
     print('\n'.join(tree_lines))
-
-    return '\n'.join(output_lines)
+    return full_output

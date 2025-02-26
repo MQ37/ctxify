@@ -1,7 +1,7 @@
 import click
+from typing import Optional
 
 from ctxify.main import copy_to_clipboard, print_git_contents, interactive_file_selection
-
 
 @click.command()
 @click.argument('directory', default='.', type=click.Path(exists=True, file_okay=False))
@@ -14,15 +14,15 @@ from ctxify.main import copy_to_clipboard, print_git_contents, interactive_file_
 @click.option(
     '-s', '--structure', is_flag=True, help='Output only the project structure without file contents'
 )
-def main(directory, md, interactive, structure):
+def main(directory: str, md: bool, interactive: bool, structure: bool) -> None:
     """A tool to print all tracked files in a git repository directory with tree structure and copy to clipboard."""
+    output: str
     if interactive:
         output = interactive_file_selection(directory, include_md=md)
     else:
         output = print_git_contents(root_dir=directory, include_md=md, structure_only=structure)
     if copy_to_clipboard(output):
         click.echo('Project context copied to clipboard!')
-
 
 if __name__ == '__main__':
     main()
