@@ -1,8 +1,8 @@
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Union
+from typing import Dict, List, Optional, Tuple, Union
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import FuzzyWordCompleter
 
@@ -30,6 +30,7 @@ NON_CODE_PATTERNS = {
     '.lock',
 }
 
+
 def check_git_repo(root_dir: str) -> bool:
     """Check if the given directory is within a git repository."""
     try:
@@ -37,13 +38,16 @@ def check_git_repo(root_dir: str) -> bool:
             ['git', 'rev-parse', '--show-toplevel'],
             text=True,
             cwd=root_dir,
-            stderr=subprocess.STDOUT
+            stderr=subprocess.STDOUT,
         )
         return True
     except subprocess.CalledProcessError:
         return False
 
-def print_filtered_tree(files: List[str], output_lines: Optional[List[str]] = None) -> List[str]:
+
+def print_filtered_tree(
+    files: List[str], output_lines: Optional[List[str]] = None
+) -> List[str]:
     """Builds a tree structure from a list of file paths"""
     if output_lines is None:
         output_lines = []
@@ -52,8 +56,10 @@ def print_filtered_tree(files: List[str], output_lines: Optional[List[str]] = No
         parts = file_path.split('/')
         current = tree
         for part in parts[:-1]:
-            current = current.setdefault(part, {})
-        current[parts[-1]] = None
+            if current is not None:
+                current = current.setdefault(part, {})
+        if current is not None:
+            current[parts[-1]] = None
 
     def render_tree(node: Dict[str, Union[None, Dict]], prefix: str = '') -> None:
         if not isinstance(node, dict):
@@ -62,48 +68,57 @@ def print_filtered_tree(files: List[str], output_lines: Optional[List[str]] = No
         for i, item in enumerate(items):
             is_last = i == len(items) - 1
             output_lines.append(f'{prefix}{"└── " if is_last else "├── "}{item}')
-            if isinstance(node[item], dict):
-                render_tree(node[item], prefix + ('    ' if is_last else '│   '))
+            next_node = node[item]
+            if isinstance(next_node, dict):
+                render_tree(next_node, prefix + ('    ' if is_last else '│   '))
 
     render_tree(tree)
     return output_lines
 
-def get_git_files(root_dir: str, include_md: bool = False) -> Tuple[List[str], List[str], List[str]]:
+
+def get_git_files(
+    root_dir: str, include_md: bool = False
+) -> Tuple[List[str], List[str], List[str]]:
     """Get all tracked files from a specific directory within a git repo using git ls-files"""
     target_dir = Path(root_dir).resolve()
     try:
         # Resolve the repo root
-        repo_root = Path(subprocess.check_output(
-            ['git', 'rev-parse', '--show-toplevel'],
-            text=True,
-            cwd=target_dir
-        ).strip())
+        repo_root = Path(
+            subprocess.check_output(
+                ['git', 'rev-parse', '--show-toplevel'], text=True, cwd=target_dir
+            ).strip()
+        )
 
         # Ensure the target directory is within the repo
         if not str(target_dir).startswith(str(repo_root)):
-            return [f'Error: Directory {root_dir} is outside the git repository'], [], []
+            return (
+                [f'Error: Directory {root_dir} is outside the git repository'],
+                [],
+                [],
+            )
 
         # Get all tracked files using git ls-files
         all_files = subprocess.check_output(
-            ['git', 'ls-files'],
-            cwd=repo_root,
-            text=True
+            ['git', 'ls-files'], cwd=repo_root, text=True
         ).splitlines()
 
         # Filter files to those under the target directory
-        rel_path = target_dir.relative_to(repo_root) if target_dir != repo_root else Path('.')
+        rel_path = (
+            target_dir.relative_to(repo_root) if target_dir != repo_root else Path('.')
+        )
         rel_str = str(rel_path)
         dir_files = []
         for f in all_files:
             if rel_str == '.' or f.startswith(rel_str + '/') or f == rel_str:
                 if rel_str != '.' and f.startswith(rel_str + '/'):
-                    dir_files.append(f[len(rel_str) + 1:])
+                    dir_files.append(f[len(rel_str) + 1 :])
                 else:
                     dir_files.append(f)
 
         # Filter code files
         code_files = [
-            f for f in dir_files
+            f
+            for f in dir_files
             if not (
                 f in NON_CODE_PATTERNS
                 or any(f.endswith(ext) for ext in NON_CODE_PATTERNS)
@@ -115,6 +130,7 @@ def get_git_files(root_dir: str, include_md: bool = False) -> Tuple[List[str], L
         return [f'Error accessing git repository: {e}'], [], []
     except Exception as e:
         return [f'Error processing directory: {e}'], [], []
+
 
 def copy_to_clipboard(text: str) -> bool:
     """Copy text to system clipboard using xclip"""
@@ -130,15 +146,19 @@ def copy_to_clipboard(text: str) -> bool:
         print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
         return False
 
+
 def estimate_tokens(text: str) -> int:
     """Estimate token count using 1 token ≈ 4 characters"""
     char_count = len(text)
     return char_count // 4
 
+
 def interactive_file_selection(root_dir: str = '.', include_md: bool = False) -> str:
     """Interactively select files to include with fuzzy tab autocompletion"""
     if not check_git_repo(root_dir):
-        print(f"Error: {root_dir} is not within a git repository. This tool requires a git repository.")
+        print(
+            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
+        )
         sys.exit(1)
 
     output_lines: List[str] = []
@@ -156,12 +176,12 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
     tree_lines.append(f'\nFiles Available in Context (from {root_dir}):')
     print_filtered_tree(all_files, tree_lines)
     print('\n'.join(tree_lines))
-    print("\nEnter file paths to include (press Enter twice to finish):")
+    print('\nEnter file paths to include (press Enter twice to finish):')
 
     selected_files: List[str] = []
     while True:
         try:
-            file_path = session.prompt("> ")
+            file_path = session.prompt('> ')
             if not file_path:
                 if not selected_files:
                     continue
@@ -169,11 +189,11 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
             if file_path in all_files:
                 if file_path not in selected_files:
                     selected_files.append(file_path)
-                    print(f"Added: {file_path}")
+                    print(f'Added: {file_path}')
                 else:
-                    print(f"Already added: {file_path}")
+                    print(f'Already added: {file_path}')
             else:
-                print(f"File not found: {file_path}")
+                print(f'File not found: {file_path}')
         except KeyboardInterrupt:
             break
 
@@ -194,16 +214,23 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
 
     full_output = '\n'.join(output_lines)
     token_count = estimate_tokens(full_output)
-    token_info = f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
+    token_info = (
+        f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
+    )
     tree_lines.append(token_info)
-    print('\n'.join(tree_lines[len(tree_lines) - 1:]))
+    print('\n'.join(tree_lines[len(tree_lines) - 1 :]))
 
     return full_output
 
-def print_git_contents(root_dir: str = '.', include_md: bool = False, structure_only: bool = False) -> str:
+
+def print_git_contents(
+    root_dir: str = '.', include_md: bool = False, structure_only: bool = False
+) -> str:
     """Build output for clipboard, print tree with all files and token count to stdout"""
     if not check_git_repo(root_dir):
-        print(f"Error: {root_dir} is not within a git repository. This tool requires a git repository.")
+        print(
+            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
+        )
         sys.exit(1)
 
     output_lines: List[str] = []
@@ -236,7 +263,9 @@ def print_git_contents(root_dir: str = '.', include_md: bool = False, structure_
 
     full_output = '\n'.join(output_lines)
     token_count = estimate_tokens(full_output)
-    token_info = f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
+    token_info = (
+        f'\nApproximate token count: {token_count} (based on 1 token ≈ 4 chars)'
+    )
     tree_lines.append(token_info)
 
     print('\n'.join(tree_lines))
