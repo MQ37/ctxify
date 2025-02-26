@@ -1,6 +1,8 @@
 # ctxify 🎉
 **Turn Your Git Repo into a Clipboard-Ready Context Machine**
 
+*Built mostly with the help of xAI's Grok model—AI-powered coding at its finest!*
+
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
 ![Code Checks](https://github.com/mq37/ctxify/actions/workflows/code_checks.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
