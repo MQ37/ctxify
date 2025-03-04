@@ -1,3 +1,4 @@
+import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -5,10 +6,9 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import FuzzyWordCompleter
-import platform
 
 # Files/extensions to skip (non-code files) for content inclusion
-NON_CODE_PATTERNS = {
+IGNORE_FILES = {
     'package-lock.json',
     'poetry.lock',
     'uv.lock',
@@ -22,6 +22,10 @@ NON_CODE_PATTERNS = {
     'LICENSE',
     'CHANGELOG',
     'CONTRIBUTING',
+    '.env',  # Added to explicitly ignore .env files
+}
+
+IGNORE_EXTENSIONS = {
     '.json',
     '.yaml',
     '.yml',
@@ -121,8 +125,8 @@ def get_git_files(
             f
             for f in dir_files
             if not (
-                f in NON_CODE_PATTERNS
-                or any(f.endswith(ext) for ext in NON_CODE_PATTERNS)
+                f in IGNORE_FILES
+                or any(f.endswith(ext) for ext in IGNORE_EXTENSIONS)
                 or (not include_md and (f.endswith('.md') or 'README' in f))
             )
         ]
@@ -138,12 +142,12 @@ def copy_to_clipboard(text: str) -> bool:
     system = platform.system().lower()
     try:
         if system == 'darwin':  # macOS
-            subprocess.run(
-                ['pbcopy'], input=text.encode('utf-8'), check=True
-            )
+            subprocess.run(['pbcopy'], input=text.encode('utf-8'), check=True)
         elif system == 'linux':  # Linux
             subprocess.run(
-                ['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True
+                ['xclip', '-selection', 'clipboard'],
+                input=text.encode('utf-8'),
+                check=True,
             )
         else:
             print(f'Warning: Clipboard operations not supported on {platform.system()}')
@@ -155,9 +159,13 @@ def copy_to_clipboard(text: str) -> bool:
         return False
     except FileNotFoundError:
         if system == 'darwin':
-            print("Warning: pbcopy not found. This is unexpected as it should be built into macOS")
+            print(
+                'Warning: pbcopy not found. This is unexpected as it should be built into macOS'
+            )
         else:
-            print("Warning: xclip not installed. Install it with 'sudo apt install xclip'")
+            print(
+                "Warning: xclip not installed. Install it with 'sudo apt install xclip'"
+            )
         return False
 
 
