@@ -204,7 +204,9 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
     completer = FuzzyWordCompleter(completion_options)
     session = PromptSession(completer=completer, complete_while_typing=True)
 
-    tree_lines.append(f'\nFiles and Directories Available in Context (from {root_dir}):')
+    tree_lines.append(
+        f'\nFiles and Directories Available in Context (from {root_dir}):'
+    )
     print_filtered_tree(all_files, tree_lines)
     print('\n'.join(tree_lines))
     print('\nEnter file or directory paths to include (press Enter twice to finish):')
@@ -245,19 +247,17 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
                 output_lines.append(f'Error reading file: {e}')
             output_lines.append('')
         elif full_path.is_dir():
-            # Handle directory
-            output_lines.append(f'\nDirectory {item_path} contents:')
-            dir_files = [f for f in all_files if f.startswith(item_path + '/') or f == item_path]
+            # Handle directory (removed redundant tree print)
+            dir_files = [
+                f for f in all_files if f.startswith(item_path + '/') or f == item_path
+            ]
             if not dir_files:
                 output_lines.append(f'No tracked files found in {item_path}')
                 continue
-            # Print directory structure
-            print_filtered_tree(dir_files, output_lines)
-            output_lines.append('\nFile contents:')
             for file_path in dir_files:
                 full_file_path = target_dir / file_path
                 if full_file_path.is_file():
-                    output_lines.append(f'\n{file_path}:')
+                    output_lines.append(f'{file_path}:')
                     try:
                         with open(full_file_path, 'r', encoding='utf-8') as f:
                             content = f.read()
@@ -276,8 +276,76 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
 
     return full_output
 
+
+def interactive_file_exclusion(root_dir: str = '.', include_md: bool = False) -> str:
+    """Interactively select files or directories to exclude with fuzzy tab autocompletion"""
+    if not check_git_repo(root_dir):
+        print(
+            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
+        )
+        sys.exit(1)
+
+    tree_lines: List[str] = []
+
+    errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
+    if errors:
+        tree_lines.extend(errors)
+        print('\n'.join(tree_lines))
+        return '\n'.join(tree_lines)
+
+    # Add directories to completion options
+    all_dirs = set()
+    for f in all_files:
+        path = Path(f)
+        for parent in path.parents:
+            if str(parent) != '.':
+                all_dirs.add(str(parent))
+    completion_options = sorted(all_files + list(all_dirs))
+
+    completer = FuzzyWordCompleter(completion_options)
+    session = PromptSession(completer=completer, complete_while_typing=True)
+
+    tree_lines.append(
+        f'\nFiles and Directories Available in Context (from {root_dir}):'
+    )
+    print_filtered_tree(all_files, tree_lines)
+    print('\n'.join(tree_lines))
+    print('\nEnter file or directory paths to exclude (press Enter twice to finish):')
+
+    excluded_items: List[str] = []
+    while True:
+        try:
+            input_path = session.prompt('> ')
+            if not input_path:
+                if not excluded_items:
+                    continue
+                break
+            if input_path in completion_options:
+                if input_path not in excluded_items:
+                    excluded_items.append(input_path)
+                    print(f'Excluded: {input_path}')
+                else:
+                    print(f'Already excluded: {input_path}')
+            else:
+                print(f'Path not found: {input_path}')
+        except KeyboardInterrupt:
+            break
+
+    # Pass excluded items to print_git_contents
+    output = print_git_contents(
+        root_dir=root_dir,
+        include_md=include_md,
+        structure_only=False,
+        excluded_items=excluded_items,
+    )
+    return output
+
+
 def print_git_contents(
-    root_dir: str = '.', include_md: bool = False, structure_only: bool = False
+    root_dir: str = '.',
+    include_md: bool = False,
+    structure_only: bool = False,
+    excluded_items: Optional[List[str]] = None,  # New parameter
 ) -> str:
     """Build output for clipboard, print tree with all files and token count to stdout"""
     if not check_git_repo(root_dir):
@@ -295,6 +363,19 @@ def print_git_contents(
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
         return '\n'.join(tree_lines)
+
+    # Apply exclusions if provided
+    if excluded_items:
+        # Filter out files and directories explicitly excluded
+        excluded_files = set()
+        for item in excluded_items:
+            if item in all_files:
+                excluded_files.add(item)
+            else:
+                # Check if item is a directory and exclude all files under it
+                excluded_files.update(f for f in all_files if f.startswith(item + '/'))
+        all_files = [f for f in all_files if f not in excluded_files]
+        code_files = [f for f in code_files if f not in excluded_files]
 
     tree_lines.append(f'\nFiles Included in Context (from {root_dir}):')
     print_filtered_tree(all_files, tree_lines)
