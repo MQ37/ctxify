@@ -78,30 +78,30 @@ def test_estimate_tokens():
     assert estimate_tokens('') == 0
 
 
-def test_print_git_contents_structure_only(tmp_path):
-    with patch('ctxify.content.check_git_repo', return_value=True):
-        with patch(
-            'ctxify.content.get_git_files',
-            return_value=([], ['file1.py'], ['file1.py']),
-        ):
-            with patch('sys.stdout', new_callable=lambda: sys.stdout):  # Suppress print
-                output = print_git_contents(str(tmp_path), structure_only=True)
+def test_print_git_contents_structure_only(tmp_path, mocker):
+    mocker.patch('ctxify.content.check_git_repo', return_value=True)
+    mocker.patch(
+        'ctxify.content.get_git_files',
+        return_value=([], ['file1.py'], ['file1.py']),
+    )
+    mocker.patch('sys.stdout', new_callable=lambda: sys.stdout)  # Suppress print
+    output = print_git_contents(str(tmp_path), structure_only=True)
     assert 'file1.py' in output
     assert '└── file1.py' in output  # Check tree structure
 
 
-def test_print_git_contents_with_exclusions(tmp_path):
-    with patch('ctxify.content.check_git_repo', return_value=True):
-        with patch(
-            'ctxify.content.get_git_files',
-            return_value=([], ['file1.py', 'file2.txt'], ['file1.py']),
-        ):
-            with patch('sys.stdout', new_callable=lambda: sys.stdout):  # Suppress print
-                output = print_git_contents(
-                    str(tmp_path),
-                    include_md=False,
-                    structure_only=False,
-                    excluded_items=['file1.py'],
-                )
+def test_print_git_contents_with_exclusions(tmp_path, mocker):
+    mocker.patch('ctxify.content.check_git_repo', return_value=True)
+    mocker.patch(
+        'ctxify.content.get_git_files',
+        return_value=([], ['file1.py', 'file2.txt'], ['file1.py']),
+    )
+    mocker.patch('sys.stdout', new_callable=lambda: sys.stdout)  # Suppress print
+    output = print_git_contents(
+        str(tmp_path),
+        include_md=False,
+        structure_only=False,
+        excluded_items=['file1.py'],
+    )
     assert 'file1.py' not in output
     assert 'file2.txt' in output
