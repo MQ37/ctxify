@@ -46,3 +46,19 @@ def test_cli_structure_only():
             mock_print.assert_called_once_with(
                 root_dir='.', include_md=False, structure_only=True
             )
+
+
+def test_cli_with_exclude_flag():
+    runner = CliRunner()
+    with patch('ctxify.cli.copy_to_clipboard', return_value=True):
+        with patch('ctxify.cli.interactive_file_exclusion') as mock_exclude:
+            result = runner.invoke(main, ['.', '-e'])
+            assert result.exit_code == 0
+            mock_exclude.assert_called_once_with('.', include_md=False)
+
+
+def test_cli_help_with_h():
+    runner = CliRunner()
+    result = runner.invoke(main, ['-h'])
+    assert result.exit_code == 0
+    assert 'A tool to print all tracked files' in result.output

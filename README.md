@@ -1,7 +1,7 @@
 # ctxify 🎉
 **Turn Your Git Repo into a Clipboard-Ready Context Machine**
 
-*Built mostly with the help of xAI's Grok model—AI-powered coding at its finest!*
+*Vibe coded using xAI's based Grok model*
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
 ![Code Checks](https://github.com/mq37/ctxify/actions/workflows/code_checks.yml/badge.svg)
@@ -28,7 +28,9 @@ Ever wanted to:
 - 📋 **Clipboard Ready**: Copies the tree *and* file contents instantly.
 - 🚫 **Smart Filtering**: Ignores non-code files (e.g., `uv.lock`, `.txt`) by default.
 - 📝 **Markdown Support**: Optionally include `.md` files with a flag.
-- 🎮 **Interactive Mode**: Pick files with fuzzy tab autocompletion.
+- 🎮 **Interactive Modes**:
+  - **Selection Mode**: Pick files with fuzzy tab autocompletion.
+  - **Exclusion Mode**: Exclude files or directories interactively.
 - 🌳 **Structure-Only Mode**: Output just the tree, no contents.
 - 📏 **Token Count**: Estimates tokens (1 token ≈ 4 chars) for the full output.
 
@@ -73,6 +75,10 @@ ctxify
 - `-i` / `--interactive`: Select files interactively with tab autocompletion.
    ```bash
    ctxify -i
+   ```
+- `-e` / `--exclude`: Exclude files or directories interactively with tab autocompletion.
+   ```bash
+   ctxify -e
    ```
 - `-s` / `--structure`: Output only the project structure, no contents.
    ```bash
