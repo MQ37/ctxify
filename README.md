@@ -1,13 +1,13 @@
 # ctxify 🎉
-**Turn Your Git Repo into a Clipboard-Ready Context Machine**
+**Copy stuff easily!**
 
-*Vibe coded using xAI's based Grok model*
+*Vibe coded to perfection*
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
 ![Code Checks](https://github.com/mq37/ctxify/actions/workflows/code_checks.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**`ctxify`** is a sleek CLI tool that grabs all tracked files in your Git repository, builds a neat tree structure, and copies everything—code and all—to your clipboard with a single command. Perfect for sharing project context, debugging, or feeding your code straight into AI assistants. It even gives you an approximate token count for fun! 🚀
+**`ctxify`** is a sleek CLI tool that grabs all files in your directory (or Git repository), builds a neat tree structure, and copies everything—code and all—to your clipboard with a single command. Perfect for sharing project context, debugging, or feeding your code straight into AI assistants. It even gives you an approximate token count for fun! 🚀
 
 ---
 
@@ -19,12 +19,12 @@ Ever wanted to:
 - Get just the structure without the contents?
 - Know how many tokens your project weighs in at?
 
-`ctxify` does it all. It's lightweight, fast, and skips the fluff (like lock files or `.gitignore`). Built with Python 3.13 and Git magic. ✨
+`ctxify` does it all. It's lightweight, fast, and skips the fluff (like lock files or `.gitignore`). Built with Python 3.8+ and filesystem/Git magic. ✨
 
 ---
 
 ## Features
-- 📂 **Git-Powered Tree View**: Prints a gorgeous file tree of tracked files.
+- 📂 **File Tree View**: Prints a gorgeous file tree of all files in your directory.
 - 📋 **Clipboard Ready**: Copies the tree *and* file contents instantly.
 - 🚫 **Smart Filtering**: Ignores non-code files (e.g., `uv.lock`, `.txt`) by default.
 - 📝 **Markdown Support**: Optionally include `.md` files with a flag.
@@ -33,6 +33,7 @@ Ever wanted to:
   - **Exclusion Mode**: Exclude files or directories interactively.
 - 🌳 **Structure-Only Mode**: Output just the tree, no contents.
 - 📏 **Token Count**: Estimates tokens (1 token ≈ 4 chars) for the full output.
+- 🔄 **Git Integration**: Optionally use only Git-tracked files with the `--git` flag.
 
 ---
 
@@ -61,7 +62,7 @@ On macOS, clipboard support is built-in (uses `pbcopy`), so no additional instal
 ---
 
 ## Usage
-Run it from your Git repo's root:
+Run it from any directory:
 
 ```bash
 ctxify
@@ -83,6 +84,10 @@ ctxify
 - `-s` / `--structure`: Output only the project structure, no contents.
    ```bash
    ctxify -s
+   ```
+- `-g` / `--git`: Use only Git-tracked files (default is to use all files in directory).
+   ```bash
+   ctxify -g
    ```
 
 ### Example Output

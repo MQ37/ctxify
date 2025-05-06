@@ -5,26 +5,39 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import FuzzyWordCompleter
 
 from ctxify.utils import (
-    GitRepositoryError,
     check_git_repo,
     estimate_tokens,
+    get_files_from_directory,
     get_git_files,
     print_filtered_tree,
 )
 
 
-def interactive_file_selection(root_dir: str = '.', include_md: bool = False) -> str:
+def interactive_file_selection(
+    root_dir: str = '.', include_md: bool = False, use_git: bool = False
+) -> str:
     """Interactively select files or directories to include with fuzzy tab autocompletion."""
-    if not check_git_repo(root_dir):
-        print(
-            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
-        )
-        raise GitRepositoryError(f'{root_dir} is not within a git repository')
-
     output_lines: List[str] = []
     tree_lines: List[str] = []
 
-    errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
+    # Determine whether to use Git or filesystem
+    if use_git:
+        if not check_git_repo(root_dir):
+            print(
+                f'Warning: {root_dir} is not within a git repository. Falling back to filesystem scan.'
+            )
+            errors, all_files, code_files = get_files_from_directory(
+                root_dir, include_md=include_md
+            )
+        else:
+            errors, all_files, code_files = get_git_files(
+                root_dir, include_md=include_md
+            )
+    else:
+        errors, all_files, code_files = get_files_from_directory(
+            root_dir, include_md=include_md
+        )
+
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
@@ -111,17 +124,30 @@ def interactive_file_selection(root_dir: str = '.', include_md: bool = False) ->
     return full_output
 
 
-def interactive_file_exclusion(root_dir: str = '.', include_md: bool = False) -> str:
+def interactive_file_exclusion(
+    root_dir: str = '.', include_md: bool = False, use_git: bool = False
+) -> str:
     """Interactively select files or directories to exclude with fuzzy tab autocompletion."""
-    if not check_git_repo(root_dir):
-        print(
-            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
-        )
-        raise GitRepositoryError(f'{root_dir} is not within a git repository')
-
     tree_lines: List[str] = []
 
-    errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
+    # Determine whether to use Git or filesystem
+    if use_git:
+        if not check_git_repo(root_dir):
+            print(
+                f'Warning: {root_dir} is not within a git repository. Falling back to filesystem scan.'
+            )
+            errors, all_files, code_files = get_files_from_directory(
+                root_dir, include_md=include_md
+            )
+        else:
+            errors, all_files, code_files = get_git_files(
+                root_dir, include_md=include_md
+            )
+    else:
+        errors, all_files, code_files = get_files_from_directory(
+            root_dir, include_md=include_md
+        )
+
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))
@@ -171,5 +197,6 @@ def interactive_file_exclusion(root_dir: str = '.', include_md: bool = False) ->
         include_md=include_md,
         structure_only=False,
         excluded_items=excluded_items,
+        use_git=use_git,
     )
     return output

@@ -1,3 +1,4 @@
+import os
 import platform
 import subprocess
 from pathlib import Path
@@ -31,6 +32,20 @@ IGNORE_EXTENSIONS = {
     '.lock',
 }
 
+# Directories to ignore when scanning files
+IGNORE_DIRS = {
+    '.git',
+    '__pycache__',
+    'node_modules',
+    '.venv',
+    'venv',
+    'env',
+    '.pytest_cache',
+    '.ruff_cache',
+    'dist',
+    'build',
+}
+
 
 class GitRepositoryError(Exception):
     """Raised when a directory is not within a Git repository."""
@@ -50,6 +65,43 @@ def check_git_repo(root_dir: str) -> bool:
         return True
     except subprocess.CalledProcessError:
         return False
+
+
+def get_files_from_directory(
+    root_dir: str, include_md: bool = False
+) -> Tuple[List[str], List[str], List[str]]:
+    """Get all files from a directory recursively, filtering out ignored files and directories."""
+    target_dir = Path(root_dir).resolve()
+    try:
+        all_files = []
+
+        # Walk through the directory recursively
+        for dirpath, dirnames, filenames in os.walk(target_dir):
+            # Filter out ignored directories in-place
+            dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
+
+            # Process files in this directory
+            for filename in filenames:
+                full_path = Path(dirpath) / filename
+                # Get path relative to target_dir
+                rel_path = full_path.relative_to(target_dir)
+                rel_path_str = str(rel_path)
+                all_files.append(rel_path_str)
+
+        # Filter code files
+        code_files = [
+            f
+            for f in all_files
+            if not (
+                f in IGNORE_FILES
+                or any(f.endswith(ext) for ext in IGNORE_EXTENSIONS)
+                or (not include_md and (f.endswith('.md') or 'README' in f))
+            )
+        ]
+
+        return [], sorted(all_files), sorted(code_files)
+    except Exception as e:
+        return [f'Error processing directory: {e}'], [], []
 
 
 def get_git_files(

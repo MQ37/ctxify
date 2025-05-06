@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import List, Optional
 
 from ctxify.utils import (
-    GitRepositoryError,
     check_git_repo,
     estimate_tokens,
+    get_files_from_directory,
     get_git_files,
     print_filtered_tree,
 )
@@ -15,19 +15,32 @@ def print_git_contents(
     include_md: bool = False,
     structure_only: bool = False,
     excluded_items: Optional[List[str]] = None,
+    use_git: bool = False,
 ) -> str:
     """Build output for clipboard, print tree with all files and token count to stdout."""
-    if not check_git_repo(root_dir):
-        print(
-            f'Error: {root_dir} is not within a git repository. This tool requires a git repository.'
-        )
-        raise GitRepositoryError(f'{root_dir} is not within a git repository')
-
     output_lines: List[str] = []
     tree_lines: List[str] = []
 
     target_dir = Path(root_dir).resolve()
-    errors, all_files, code_files = get_git_files(root_dir, include_md=include_md)
+
+    # Determine whether to use Git or filesystem
+    if use_git:
+        if not check_git_repo(root_dir):
+            print(
+                f'Warning: {root_dir} is not within a git repository. Falling back to filesystem scan.'
+            )
+            errors, all_files, code_files = get_files_from_directory(
+                root_dir, include_md=include_md
+            )
+        else:
+            errors, all_files, code_files = get_git_files(
+                root_dir, include_md=include_md
+            )
+    else:
+        errors, all_files, code_files = get_files_from_directory(
+            root_dir, include_md=include_md
+        )
+
     if errors:
         tree_lines.extend(errors)
         print('\n'.join(tree_lines))

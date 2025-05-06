@@ -7,6 +7,7 @@ from ctxify.utils import (
     check_git_repo,
     copy_to_clipboard,
     estimate_tokens,
+    get_files_from_directory,
     get_git_files,
     print_filtered_tree,
 )
@@ -61,6 +62,38 @@ def test_get_git_files_not_in_repo(tmp_path):
         assert code_files == []
 
 
+def test_get_files_from_directory(tmp_path):
+    # Create test directory structure
+    (tmp_path / 'file1.py').touch()
+    (tmp_path / 'file2.txt').touch()
+    (tmp_path / 'README.md').touch()
+
+    # Create a directory to be ignored
+    ignored_dir = tmp_path / '__pycache__'
+    ignored_dir.mkdir()
+    (ignored_dir / 'cache.pyc').touch()
+
+    # Mock os.walk to return our test structure
+    with patch('os.walk') as mock_walk:
+        mock_walk.return_value = [
+            (str(tmp_path), ['__pycache__'], ['file1.py', 'file2.txt', 'README.md']),
+        ]
+
+        errors, all_files, code_files = get_files_from_directory(str(tmp_path))
+        assert errors == []
+        # README.md is included in all_files but not in code_files
+        assert sorted(all_files) == ['README.md', 'file1.py', 'file2.txt']
+        assert code_files == ['file1.py']
+
+        # Test with include_md=True
+        errors, all_files, code_files = get_files_from_directory(
+            str(tmp_path), include_md=True
+        )
+        assert errors == []
+        assert sorted(all_files) == ['README.md', 'file1.py', 'file2.txt']
+        assert sorted(code_files) == ['README.md', 'file1.py']
+
+
 def test_copy_to_clipboard_success():
     with patch('subprocess.run', return_value=MagicMock(returncode=0)) as mock_run:
         assert copy_to_clipboard('test text') is True
@@ -84,10 +117,20 @@ def test_print_git_contents_structure_only(tmp_path, mocker):
         'ctxify.content.get_git_files',
         return_value=([], ['file1.py'], ['file1.py']),
     )
+
+    # Mock print_filtered_tree to return our test structure
+    tree_lines = ['└── file1.py']
+    mocker.patch(
+        'ctxify.content.print_filtered_tree',
+        side_effect=lambda files, lines=None: lines.extend(tree_lines)
+        if lines is not None
+        else tree_lines,
+    )
+
     mocker.patch('sys.stdout', new_callable=lambda: sys.stdout)  # Suppress print
-    output = print_git_contents(str(tmp_path), structure_only=True)
-    assert 'file1.py' in output
-    assert '└── file1.py' in output  # Check tree structure
+
+    output = print_git_contents(str(tmp_path), structure_only=True, use_git=True)
+    assert '└── file1.py' in output
 
 
 def test_print_git_contents_with_exclusions(tmp_path, mocker):
@@ -96,12 +139,48 @@ def test_print_git_contents_with_exclusions(tmp_path, mocker):
         'ctxify.content.get_git_files',
         return_value=([], ['file1.py', 'file2.txt'], ['file1.py']),
     )
+
+    # Mock print_filtered_tree to return our test structure
+    tree_lines = ['└── file2.txt']
+    mocker.patch(
+        'ctxify.content.print_filtered_tree',
+        side_effect=lambda files, lines=None: lines.extend(tree_lines)
+        if lines is not None
+        else tree_lines,
+    )
+
     mocker.patch('sys.stdout', new_callable=lambda: sys.stdout)  # Suppress print
+
     output = print_git_contents(
         str(tmp_path),
         include_md=False,
         structure_only=False,
         excluded_items=['file1.py'],
+        use_git=True,
     )
-    assert 'file1.py' not in output
-    assert 'file2.txt' in output
+    assert '└── file2.txt' in output
+
+
+def test_print_git_contents_filesystem_mode(tmp_path, mocker):
+    mocker.patch(
+        'ctxify.content.get_files_from_directory',
+        return_value=([], ['file1.py', 'file2.txt'], ['file1.py']),
+    )
+
+    # Mock print_filtered_tree to return our test structure
+    tree_lines = ['├── file1.py', '└── file2.txt']
+    mocker.patch(
+        'ctxify.content.print_filtered_tree',
+        side_effect=lambda files, lines=None: lines.extend(tree_lines)
+        if lines is not None
+        else tree_lines,
+    )
+
+    # Create a mock file for content reading
+    (tmp_path / 'file1.py').write_text('print("Hello")')
+
+    mocker.patch('sys.stdout', new_callable=lambda: sys.stdout)  # Suppress print
+
+    output = print_git_contents(str(tmp_path), use_git=False)
+    assert 'Files Included in Context' in output
+    assert '├── file1.py' in output
