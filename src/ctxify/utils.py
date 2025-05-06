@@ -4,6 +4,11 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+# Files that should always be included regardless of extension
+NEVER_IGNORE_FILES = {
+    'package.json',
+}
+
 # Files/extensions to skip (non-code files) for content inclusion
 IGNORE_FILES = {
     'package-lock.json',
@@ -92,7 +97,8 @@ def get_files_from_directory(
         code_files = [
             f
             for f in all_files
-            if not (
+            if f in NEVER_IGNORE_FILES
+            or not (
                 f in IGNORE_FILES
                 or any(f.endswith(ext) for ext in IGNORE_EXTENSIONS)
                 or (not include_md and (f.endswith('.md') or 'README' in f))
@@ -138,7 +144,8 @@ def get_git_files(
         code_files = [
             f
             for f in dir_files
-            if not (
+            if f in NEVER_IGNORE_FILES
+            or not (
                 f in IGNORE_FILES
                 or any(f.endswith(ext) for ext in IGNORE_EXTENSIONS)
                 or (not include_md and (f.endswith('.md') or 'README' in f))

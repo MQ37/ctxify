@@ -1,96 +1,58 @@
-# ctxify 🎉
-**Copy stuff easily!**
+# ctxify
 
-*Vibe coded to perfection*
+Copy your code to clipboard. That's it. ✨
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/MQ37/ctxify?color=brightgreen)
 ![Code Checks](https://github.com/mq37/ctxify/actions/workflows/code_checks.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**`ctxify`** is a sleek CLI tool that grabs all files in your directory (or Git repository), builds a neat tree structure, and copies everything—code and all—to your clipboard with a single command. Perfect for sharing project context, debugging, or feeding your code straight into AI assistants. It even gives you an approximate token count for fun! 🚀
+> 💫 100% vibe coded to perfection
 
----
+## What it does
 
-## Why ctxify?
-Ever wanted to:
-- Share your project structure and code in one go?
-- Hand-pick files interactively with tab autocompletion?
-- Skip the hassle of manually copying files?
-- Get just the structure without the contents?
-- Know how many tokens your project weighs in at?
-
-`ctxify` does it all. It's lightweight, fast, and skips the fluff (like lock files or `.gitignore`). Built with Python 3.8+ and filesystem/Git magic. ✨
-
----
-
-## Features
-- 📂 **File Tree View**: Prints a gorgeous file tree of all files in your directory.
-- 📋 **Clipboard Ready**: Copies the tree *and* file contents instantly.
-- 🚫 **Smart Filtering**: Ignores non-code files (e.g., `uv.lock`, `.txt`) by default.
-- 📝 **Markdown Support**: Optionally include `.md` files with a flag.
-- 🎮 **Interactive Modes**:
-  - **Selection Mode**: Pick files with fuzzy tab autocompletion.
-  - **Exclusion Mode**: Exclude files or directories interactively.
-- 🌳 **Structure-Only Mode**: Output just the tree, no contents.
-- 📏 **Token Count**: Estimates tokens (1 token ≈ 4 chars) for the full output.
-- 🔄 **Git Integration**: Optionally use only Git-tracked files with the `--git` flag.
-
----
-
-## Installation
-
-Install `ctxify` from PyPI:
-
-- **With `pipx`** (recommended for isolated CLI tools):
-  ```bash
-  pipx install ctxify
-  ```
-
-- **With `uv`** (fast and modern Python tool management):
-  ```bash
-  uv tool install ctxify
-  ```
-
-### Optional (for clipboard support)
-On Linux, install `xclip`:
-```bash
-sudo apt install xclip
-```
-
-On macOS, clipboard support is built-in (uses `pbcopy`), so no additional installation is needed.
-
----
-
-## Usage
-Run it from any directory:
+`ctxify` copies your project files to clipboard with a single command.
 
 ```bash
 ctxify
 ```
 
-### Options
-- `--md` / `-md`: Include `.md` files (e.g., `README.md`).
-   ```bash
-   ctxify --md
-   ```
-- `-i` / `--interactive`: Select files interactively with tab autocompletion.
-   ```bash
-   ctxify -i
-   ```
-- `-e` / `--exclude`: Exclude files or directories interactively with tab autocompletion.
-   ```bash
-   ctxify -e
-   ```
-- `-s` / `--structure`: Output only the project structure, no contents.
-   ```bash
-   ctxify -s
-   ```
-- `-g` / `--git`: Use only Git-tracked files (default is to use all files in directory).
-   ```bash
-   ctxify -g
-   ```
+That's it. Your code is now in your clipboard. Paste it into ChatGPT or whatever.
 
-### Example Output
+## Why?
+
+Because copying files one by one is tedious, and I got tired of doing it.
+
+## Install
+
+```bash
+pipx install ctxify  # if you're fancy
+pip install ctxify   # works too
+uv tool install ctxify  # if you're using uv
+```
+
+Linux needs `xclip`:
+```bash
+sudo apt install xclip
+```
+
+## Usage
+
+Basic:
+```bash
+ctxify  # copies everything
+```
+
+Options that matter:
+```bash
+ctxify -i  # interactive mode, pick what you want
+ctxify -e  # exclude stuff you don't want
+ctxify -s  # structure only, no file contents
+ctxify -g  # git tracked files only
+ctxify --md  # include markdown files
+```
+
+## Example
+
 ```
 Files Included in Context (from .):
 ├── .python-version
@@ -100,15 +62,9 @@ Files Included in Context (from .):
         ├── cli.py
         └── main.py
 
-Approximate token count: 512 (based on 1 token ≈ 4 chars)
+Approximate token count: 512
 ```
 
-The clipboard gets the tree *plus* file contents (unless using `-s`)—ready to paste anywhere!
-
----
-
 ## Contributing
-Love `ctxify`? Want to make it better?
-- Fork it.
-- Submit a PR.
-- Open an issue with ideas or bugs.
+
+Fork it; Submit a PR; Create an issue with a bug or idea.
